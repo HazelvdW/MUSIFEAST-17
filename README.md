@@ -5,4 +5,4 @@ MUSIFEAST-17 includes normative data from 701 UK and US participants, sampled ev
 on familiarity, enjoyment, emotional expression, perceived contrast, genre recognition, thought types, and contextual associations evoked by each excerpt. 
 This resource enables systematic stimuli selection for diverse applications within psychology (e.g., emotion studies, aesthetic experience, music-evoked imaginings) and supports Open Science practices.
 
-All music stimuli can be accessed via the MUSIFEAST-17 repository on OSF, https://osf.io/5ebz2
+All music stimuli, normative data tables, and supplementary materials can also be accessed via the MUSIFEAST-17 repository on OSF, https://osf.io/5ebz2
