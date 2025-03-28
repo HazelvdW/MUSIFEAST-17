@@ -77,7 +77,7 @@ ui <- fluidPage(
       checkboxInput("by_genre", "Show genres", TRUE)
     ),
     mainPanel(
-      plotlyOutput("scatterplot", height = "700px"),
+      plotlyOutput("scatterplot", height = "600px"),
       uiOutput("genre_legend")
     )
   ),
