@@ -77,7 +77,7 @@ ui <- fluidPage(
       checkboxInput("by_genre", "Show genres", TRUE)
     ),
     mainPanel(
-      plotlyOutput("scatterplot", height = "600px"),
+      plotlyOutput("scatterplot", height = "700px"),
       uiOutput("genre_legend")
     )
   ),
@@ -100,11 +100,11 @@ ui <- fluidPage(
 server <- function(input, output, session) {
   
   genre_colors <- c(
-    "60s" = "#e7756e", "80s" = "#3cc281", "Ambient" = "#20a2f2", "Classical" = "#9090e7", 
-    "Country" = "#3b7137", "Dance" = "#37ccc8", "Electronic" = "#cbef1a", 
+    "60s" = "#b11226", "80s" = "#008000", "Ambient" = "#20a2f2", "Classical" = "#9090e7", 
+    "Country" = "#7b7137", "Dance" = "#37ccc8", "Electronic" = "#cbef1a", 
     "Film" = "#681fc3", "Folk" = "#581d40", "Funk" = "#bf1fcd", "Hip-hop" = "#1e1178", 
-    "Jazz" = "#ffaf08", "Metal" = "#fb0101", "Pop" = "#ff16b1", "R&B" = "#41ffff", 
-    "Rock" = "#e44c55", "Video game" = "#30ff00")
+    "Jazz" = "#ffbd31", "Metal" = "#ff0800", "Pop" = "#ff16b1", "R&B" = "#41ffff", 
+    "Rock" = "#ff6900", "Video game" = "#30ff00")
   
   subsetted <- reactive({
     req(input$Genre)
@@ -245,6 +245,11 @@ server <- function(input, output, session) {
 
 shinyApp(ui = ui, server = server)   
 
+
+#runApp(appDir = getwd(), port = NULL,
+#       launch.browser = getOption("shiny.launch.browser", interactive()),
+#       host = getOption("shiny.host", "0.0.0.0"), workerId = "",
+#       quiet = FALSE, display.mode = c("auto", "normal", "showcase"))
 
 # Run from GitHub ---------------------------
 #runGitHub("MUSIFEAST-17", "HazelvdW")
