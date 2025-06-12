@@ -12,6 +12,6 @@ Independantly, Tuomas Eerola extracted audio features for MUSIFEAST-17 dataset w
 
 ------------
 
-A paper describing the creation of this dataset is currenly under review (_van der Walle, H. A., Wu, W., Margulis, E. H., & Jakubowski, K. (under review). MUSIFEAST-17: MUsic Stimuli for Imagination, Familiarity, Emotion, and Aesthetic STudies across 17 genres._).
+A paper describing the creation of this dataset is currenly under in print (_van der Walle, H. A., Wu, W., Margulis, E. H., & Jakubowski, K. (in print). MUSIFEAST-17: MUsic Stimuli for Imagination, Familiarity, Emotion, and Aesthetic STudies across 17 genres._).
 
 All music stimuli, normative data tables, and supplementary materials can also be accessed via the MUSIFEAST-17 repository on OSF, https://osf.io/5ebz2
