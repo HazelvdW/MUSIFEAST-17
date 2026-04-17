@@ -12,6 +12,8 @@ Independantly, Tuomas Eerola extracted audio features for MUSIFEAST-17 dataset w
 
 ------------
 
-A paper describing the creation of this dataset and discussing the results is openly available to read: _van der Walle, H.A., Wu, W., Margulis, E.H. et al. MUSIFEAST-17: MUsic Stimuli for Imagination, Familiarity, Emotion, and Aesthetic STudies across 17 genres. Behavior Research Methods, 57(7), 1-26. https://doi.org/10.3758/s13428-025-02724-0_
+A paper describing the creation of this dataset and discussing the results is openly available to read: _van der Walle, H.A., Wu, W., Margulis, E.H. et al. *MUSIFEAST-17: MUsic Stimuli for Imagination, Familiarity, Emotion, and Aesthetic STudies across 17 genres.* Behavior Research Methods, 57(7), 1-26. https://doi.org/10.3758/s13428-025-02724-0_
+
+An additional paper analysing the thought type occurrence patterns in more detail is also openly available to read: _van der Walle, H. A., Wu, W., Margulis, E. H., & Jakubowski, K. (2025). *Thoughtscapes in music: An examination of thought types occurring during music listening across 17 genres.* Psychology of Music. https://doi.org/10.1177/03057356251346654._
 
 All music stimuli, normative data tables, and supplementary materials can also be accessed via the MUSIFEAST-17 repository on OSF, https://osf.io/5ebz2
