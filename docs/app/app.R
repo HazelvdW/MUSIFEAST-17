@@ -1,70 +1,82 @@
 #
 # Hazel Aileen van der Walle
 # MUSIFEAST-17 Interactive Stimulus Explorer
-# Adapted for shinylive (runs entirely in browser via webR)
+# Shinylive / webR version — minimal dependencies for browser compatibility
+#
+# Changes from original:
+#   - No tidyverse (can't install in webR)
+#   - No bslib / bs_theme (Bootswatch presets unreliable in webR)
+#   - Data loaded reactively inside server, not at top level
+#   - Uses only: shiny, dplyr, readr, plotly
 #
 
 library(shiny)
-library(ggplot2)
-library(readr)
 library(dplyr)
-library(tidyr)
+library(readr)
 library(plotly)
-library(htmltools)
-library(bslib)
 
-# Load data — fetches directly from GitHub (works in shinylive via webR HTTP)
-M17_url <- "https://raw.githubusercontent.com/HazelvdW/MUSIFEAST-17/refs/heads/main/M17_normative_data_tables/MUSIFEAST17_all.csv"
-df <- readr::read_csv(M17_url, show_col_types = FALSE)
-varSelect <- df |> dplyr::select(ends_with('_M'))
-
-# UI
+# ── UI ────────────────────────────────────────────────────────────────────────
 ui <- fluidPage(
-  titlePanel("Interactive MUSIFEAST-17 Player!"),
-  theme = bs_theme(preset = "vapor"),
+
+  # Inline dark styling — no bslib needed
+  tags$head(tags$style(HTML("
+    body { background-color: #1a1a2e; color: #eee;
+           font-family: 'Segoe UI', sans-serif; }
+    .well { background-color: #16213e; border: 1px solid #0f3460; color: #eee; }
+    .selectize-input, .selectize-dropdown { background: #16213e !important; color: #eee !important; }
+    h2, label { color: #eee !important; }
+    .shiny-input-container { color: #eee; }
+    .genre-legend {
+      display: flex; flex-wrap: wrap; justify-content: center;
+      gap: 8px; margin-top: 10px; padding: 10px;
+      background-color: rgba(255,255,255,0.08); border-radius: 5px;
+    }
+    .genre-item  { display: flex; align-items: center; gap: 5px;
+                   font-size: 13px; color: #eee; }
+    .genre-color { width: 13px; height: 13px; border-radius: 50%; flex-shrink: 0; }
+    pre { background: #16213e; color: #aed6f1; border: none; font-size: 0.8rem; }
+  "))),
+
+  titlePanel(
+    tags$span("Interactive MUSIFEAST-17 Explorer",
+              style = "color:#39ff14; font-weight:700;")
+  ),
 
   sidebarLayout(
     sidebarPanel(
-      HTML('<p class="text-secondary">Click on points to play associated audio</p>'),
+      style = "background:#16213e; border:1px solid #0f3460;",
+
+      uiOutput("data_status"),
+      tags$p("Click any point to play its audio.",
+             style = "color:#aaa; font-size:0.85rem; margin-bottom:0.8rem;"),
+
       uiOutput("audio_player_ui"),
       verbatimTextOutput("selected_info"),
 
-      selectInput("xvar", "X variable", names(varSelect), selected = "valence_M"),
-      selectInput("yvar", "Y variable", names(varSelect), selected = "arousal_M"),
-      checkboxGroupInput(
-        "Genre", "Filter by genre",
-        choices  = unique(df$GENRE),
-        selected = unique(df$GENRE)
-      ),
+      uiOutput("x_select"),
+      uiOutput("y_select"),
+      uiOutput("genre_filter"),
 
-      tags$head(tags$style(HTML("
-        .genre-legend { display:flex; flex-wrap:wrap; justify-content:center;
-          gap:10px; margin-top:10px; padding:10px;
-          background-color:white; border-radius:5px; }
-        .genre-item  { display:flex; align-items:center; gap:5px;
-          font-size:14px; color:black; }
-        .genre-color { width:15px; height:15px; border-radius:50%; }
-      "))),
-
-      hr(),
-      checkboxInput("by_genre", "Show genres", TRUE)
+      tags$hr(style = "border-color:#0f3460;"),
+      checkboxInput("by_genre", "Colour by genre", TRUE)
     ),
 
     mainPanel(
-      plotlyOutput("scatterplot", height = "700px"),
+      plotlyOutput("scatterplot", height = "680px"),
       uiOutput("genre_legend")
     )
   ),
 
   tags$script(HTML("
     $(document).on('plotly_click', function(e, data) {
-      var pointNumber = data.points[0].pointNumber;
-      Shiny.setInputValue('clicked_point_index', pointNumber);
+      if (data && data.points && data.points.length > 0) {
+        Shiny.setInputValue('clicked_point_index', data.points[0].pointNumber);
+      }
     });
   "))
 )
 
-# Server
+# ── Server ────────────────────────────────────────────────────────────────────
 server <- function(input, output, session) {
 
   genre_colors <- c(
@@ -79,84 +91,156 @@ server <- function(input, output, session) {
     "Video game" = "#30ff00"
   )
 
-  subsetted <- reactive({
-    req(input$Genre)
-    df |> dplyr::filter(GENRE %in% input$Genre)
+  # Load data reactively — never at top level in shinylive
+  df_data <- reactiveVal(NULL)
+
+  observe({
+    url <- paste0(
+      "https://raw.githubusercontent.com/HazelvdW/MUSIFEAST-17/",
+      "refs/heads/main/M17_normative_data_tables/MUSIFEAST17_all.csv"
+    )
+    tryCatch({
+      d <- readr::read_csv(url, show_col_types = FALSE)
+      df_data(d)
+    }, error = function(e) {
+      showNotification(
+        paste("Data load failed:", conditionMessage(e)),
+        type = "error", duration = NULL
+      )
+    })
   })
 
-  plotData <- reactive({
-    req(input$xvar, input$yvar)
+  # Status banner while data fetches
+  output$data_status <- renderUI({
+    if (is.null(df_data())) {
+      tags$p("⏳ Fetching stimulus data from GitHub…",
+             style = "color:#ffbd31; font-size:0.82rem; margin-bottom:0.6rem;")
+    } else {
+      tags$p(paste0("✓ ", nrow(df_data()), " stimuli loaded."),
+             style = "color:#39ff14; font-size:0.82rem; margin-bottom:0.6rem;")
+    }
+  })
+
+  # Dynamic dropdowns — appear once data is ready
+  m_cols <- reactive({
+    req(df_data())
+    names(dplyr::select(df_data(), ends_with("_M")))
+  })
+
+  output$x_select <- renderUI({
+    req(m_cols())
+    selectInput("xvar", "X axis variable", m_cols(), selected = "valence_M")
+  })
+
+  output$y_select <- renderUI({
+    req(m_cols())
+    selectInput("yvar", "Y axis variable", m_cols(), selected = "arousal_M")
+  })
+
+  output$genre_filter <- renderUI({
+    req(df_data())
+    genres <- sort(unique(df_data()$GENRE))
+    checkboxGroupInput("Genre", "Filter by genre",
+                       choices = genres, selected = genres)
+  })
+
+  # Filtered + shaped data for plotting
+  plot_data <- reactive({
+    req(df_data(), input$Genre, input$xvar, input$yvar)
+    sub <- dplyr::filter(df_data(), GENRE %in% input$Genre)
     data.frame(
-      id         = subsetted()$CLIP_NAME,
-      x          = subsetted()[[input$xvar]],
-      y          = subsetted()[[input$yvar]],
-      audio_file = paste0(
-        "https://raw.githubusercontent.com/HazelvdW/MUSIFEAST-17/refs/heads/main/M17_music_stimuli/",
-        subsetted()$CLIP_NAME, ".mp3"),
-      description = subsetted()$TRACK_TITLE,
-      GENRE       = subsetted()$GENRE
+      id          = sub$CLIP_NAME,
+      x           = sub[[input$xvar]],
+      y           = sub[[input$yvar]],
+      audio_file  = paste0(
+        "https://raw.githubusercontent.com/HazelvdW/MUSIFEAST-17/",
+        "refs/heads/main/M17_music_stimuli/",
+        sub$CLIP_NAME, ".mp3"
+      ),
+      description = sub$TRACK_TITLE,
+      GENRE       = sub$GENRE,
+      stringsAsFactors = FALSE
     )
   })
 
+  # Scatterplot
   output$scatterplot <- renderPlotly({
-    d <- plotData()
-    d$color <- if (input$by_genre) genre_colors[d$GENRE] else "#472b81"
+    d <- plot_data()
+    d$color <- if (isTRUE(input$by_genre)) genre_colors[d$GENRE] else "#472b81"
 
-    plot_ly(d,
-      x = ~x, y = ~y,
+    plot_ly(
+      d, x = ~x, y = ~y,
       type = "scatter", mode = "markers",
-      marker    = list(size = 12, color = ~color, opacity = 0.7),
-      text      = ~description,
+      marker     = list(size = 11, color = ~color, opacity = 0.75),
+      text       = ~description,
       customdata = ~audio_file,
-      hoverinfo = "text"
+      hoverinfo  = "text",
+      source     = "scatter"
     ) |>
-    layout(
-      xaxis = list(title = list(text = input$xvar, font = list(size = 14)),
-                   zeroline = TRUE, showgrid = TRUE, gridcolor = "#E2E2E2",
-                   showline = TRUE, linecolor = "#000000", tickfont = list(size = 12),
-                   range = c(min(d$x) - 0.5, max(d$x) + 0.5)),
-      yaxis = list(title = list(text = input$yvar, font = list(size = 14)),
-                   zeroline = TRUE, showgrid = TRUE, gridcolor = "#E2E2E2",
-                   showline = TRUE, linecolor = "#000000", tickfont = list(size = 12),
-                   range = c(min(d$y) - 0.5, max(d$y) + 0.5)),
-      hoverlabel = list(bgcolor = "white", font = list(size = 12, color = "black")),
-      margin     = list(l = 50, r = 50, b = 50, t = 50, pad = 4)
-    )
+      layout(
+        paper_bgcolor = "#1a1a2e",
+        plot_bgcolor  = "#1a1a2e",
+        font          = list(color = "#eee"),
+        xaxis = list(
+          title     = list(text = input$xvar, font = list(size = 13, color = "#eee")),
+          zeroline  = TRUE, zerolinecolor = "#555",
+          showgrid  = TRUE, gridcolor = "#333",
+          showline  = TRUE, linecolor = "#555",
+          tickfont  = list(size = 11, color = "#ccc"),
+          range     = c(min(d$x, na.rm = TRUE) - 0.5, max(d$x, na.rm = TRUE) + 0.5)
+        ),
+        yaxis = list(
+          title     = list(text = input$yvar, font = list(size = 13, color = "#eee")),
+          zeroline  = TRUE, zerolinecolor = "#555",
+          showgrid  = TRUE, gridcolor = "#333",
+          showline  = TRUE, linecolor = "#555",
+          tickfont  = list(size = 11, color = "#ccc"),
+          range     = c(min(d$y, na.rm = TRUE) - 0.5, max(d$y, na.rm = TRUE) + 0.5)
+        ),
+        hoverlabel = list(bgcolor = "#fff", font = list(size = 12, color = "#000")),
+        margin     = list(l = 55, r = 20, b = 55, t = 20)
+      )
   })
 
+  # Genre colour legend
   output$genre_legend <- renderUI({
-    req(input$by_genre)
-    items <- lapply(input$Genre, function(g) {
+    req(isTRUE(input$by_genre), input$Genre)
+    items <- lapply(sort(input$Genre), function(g) {
       tags$div(class = "genre-item",
-        tags$div(class = "genre-color",
-                 style = paste0("background-color:", genre_colors[g], ";")),
+        tags$div(class  = "genre-color",
+                 style  = paste0("background-color:", genre_colors[[g]], ";")),
         tags$span(g))
     })
     tags$div(class = "genre-legend", items)
   })
 
-  selectedPoint <- reactive({
-    req(input$clicked_point_index)
-    plotData()[input$clicked_point_index + 1, ]
+  # Click → audio
+  selected_point <- reactive({
+    req(input$clicked_point_index, plot_data())
+    idx <- as.integer(input$clicked_point_index) + 1L
+    plot_data()[idx, ]
   })
 
   output$selected_info <- renderText({
     if (is.null(input$clicked_point_index))
-      return("No point selected yet. Click a point to play its audio.")
-    p <- selectedPoint()
-    paste0("Selected:\n", "ID: ", p$id, "\n",
-           "X: ", round(p$x, 3), "\n",
-           "Y: ", round(p$y, 3), "\n",
+      return("No point selected.\nClick a point to hear its clip.")
+    p <- selected_point()
+    paste0("ID: ", p$id, "\n",
+           input$xvar, ": ", round(p$x, 3), "\n",
+           input$yvar, ": ", round(p$y, 3), "\n",
            "Track: ", p$description)
   })
 
   output$audio_player_ui <- renderUI({
     if (is.null(input$clicked_point_index)) return(NULL)
-    p <- selectedPoint()
+    p <- selected_point()
     tags$div(
-      tags$p(paste("Playing:", p$id)),
+      style = "margin-bottom:0.6rem;",
+      tags$p(paste("▶", p$id),
+             style = "font-size:0.82rem; color:#aed6f1; margin:0 0 4px;"),
       tags$audio(src = p$audio_file, type = "audio/mp3",
-                 controls = TRUE, autoplay = TRUE)
+                 controls = TRUE, autoplay = TRUE,
+                 style = "width:100%;")
     )
   })
 }
