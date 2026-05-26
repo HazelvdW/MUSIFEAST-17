@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Interactive MUSIFEAST-17 Player</title>
+
+  <!-- Use the LOCAL shinylive bundle that shinylive::export() placed in ./shinylive/ -->
+  <!-- Do NOT use the CDN version — it won't find app.json or webr correctly -->
+  <script src="./shinylive/load-shinylive-sw.js" type="module"></script>
+  <script src="./shinylive/shinylive.js" type="module"></script>
+  <link rel="stylesheet" href="./shinylive/shinylive.css">
+  <link rel="stylesheet" href="./bootstrap.min.css">
+
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; background: #0d0d0d; color: #fff; }
+
+    /* ── Loading screen ── */
+    #loading-screen {
+      position: fixed; inset: 0; background: #0d0d0d;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      gap: 1.4rem; z-index: 9999;
+      transition: opacity 0.7s ease;
+    }
+    #loading-screen.fade-out { opacity: 0; pointer-events: none; }
+
+    .ls-title {
+      font-family: sans-serif; font-size: 1.05rem; font-weight: 700;
+      color: #39ff14; letter-spacing: 0.1em; text-transform: uppercase;
+    }
+    .ls-sub {
+      font-family: sans-serif; font-size: 0.82rem;
+      color: rgba(255,255,255,0.45);
+      max-width: 300px; text-align: center; line-height: 1.55;
+    }
+    .ls-bar-wrap {
+      width: 260px; height: 3px;
+      background: rgba(255,255,255,0.08); border-radius: 2px; overflow: hidden;
+    }
+    .ls-bar {
+      height: 100%; width: 0%;
+      background: linear-gradient(90deg, #39ff14, #00cfff);
+      border-radius: 2px;
+      animation: bar-grow 55s ease-out forwards;
+    }
+    @keyframes bar-grow {
+      0%  { width:  0%; }
+      15% { width: 10%; }
+      40% { width: 35%; }
+      65% { width: 58%; }
+      85% { width: 78%; }
+      98% { width: 93%; }
+    }
+
+    /* ── App wrapper ── */
+    #app-wrap {
+      width: 100%; height: 100vh;
+      opacity: 0; transition: opacity 0.7s ease;
+    }
+    #app-wrap.visible { opacity: 1; }
+
+    shinylive-app { display: block; width: 100%; height: 100vh; }
+  </style>
+</head>
+<body>
+
+  <!-- Loading screen -->
+  <div id="loading-screen">
+    <div class="ls-title">MUSIFEAST-17</div>
+    <div class="ls-sub">
+      Starting the R environment in your browser —
+      this takes around 30–60 seconds on first visit.
+    </div>
+    <div class="ls-bar-wrap"><div class="ls-bar"></div></div>
+    <div class="ls-sub" style="font-size:0.75rem; opacity:0.55; margin-top:-0.4rem;">
+      Powered by shinylive + webR (no server required)
+    </div>
+  </div>
+
+  <!-- Shinylive app — uses local bundle, not CDN -->
+  <div id="app-wrap">
+    <shinylive-app
+      engine="r"
+      code-url="./app.json"
+      style="height:100vh;"
+    ></shinylive-app>
+  </div>
+
+  <script type="module">
+    const loading = document.getElementById('loading-screen');
+    const appWrap = document.getElementById('app-wrap');
+
+    function reveal() {
+      loading.classList.add('fade-out');
+      appWrap.classList.add('visible');
+      // Remove from DOM after transition so it can't block clicks
+      setTimeout(() => { loading.remove(); }, 800);
+    }
+
+    // Shinylive fires this event when the Shiny session is connected
+    window.addEventListener('shinylive:session_started', reveal);
+
+    // Robust fallback: also listen for any postMessage from the shinylive iframe
+    window.addEventListener('message', function(e) {
+      if (e.data && (e.data.type === 'shinylive:ready' || e.data.type === 'ready')) {
+        reveal();
+      }
+    });
+
+    // Hard fallback at 120s — handles edge cases where events don't fire
+    setTimeout(reveal, 120000);
+  </script>
+
+</body>
+</html>
