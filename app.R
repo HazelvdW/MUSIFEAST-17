@@ -116,9 +116,8 @@ server <- function(input, output, session) {
       x = subsetted()[[input$xvar]],  # dynamic x variable
       y = subsetted()[[input$yvar]],  # dynamic y variable
       audio_file = paste0(
-        "stimuli/",
-        subsetted()$CLIP_NAME,
-        ".mp3"
+        "https://raw.githubusercontent.com/HazelvdW/MUSIFEAST-17/main/stimuli/", 
+        subsetted()$CLIP_NAME, ".mp3"
       ),
       description = subsetted()$TRACK_TITLE,
       GENRE = subsetted()$GENRE
