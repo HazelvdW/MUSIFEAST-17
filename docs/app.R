@@ -15,10 +15,10 @@ library(bslib)
 
 
 # Load data ---------------------------
+# The CSV must sit next to app.R — Shinylive cannot fetch external URLs.
+# Download it from your repo and place it in the same folder as app.R before exporting.
 
-M17_all_norm_data_csv <-
-  "https://raw.githubusercontent.com/HazelvdW/MUSIFEAST-17/refs/heads/main/M17_normative_data_tables/MUSIFEAST17_all.csv"
-df <- readr::read_csv(M17_all_norm_data_csv)
+df <- readr::read_csv("MUSIFEAST17_all.csv")
 varSelect <- df |> select(ends_with('_M'))
 
 
