@@ -1,233 +1,177 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>MUSIFEAST-17</title>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Interactive MUSIFEAST-17 Player</title>
 
-  <!-- Shinylive core (required) -->
-  <script src="./shinylive/load-shinylive-sw.js" type="module"></script>
-
-  <script type="module">
-    import { runExportedApp } from "./shinylive/shinylive.js";
-
-    runExportedApp({
-      id: "root",
-      appEngine: "r",
-      relPath: ""
-    });
-  </script>
-
-  <!-- Required Shinylive styles -->
-  <link rel="stylesheet" href="./shinylive/style-resets.css" />
-  <link rel="stylesheet" href="./shinylive/shinylive.css" />
-  <link rel="stylesheet" href="./bootstrap.min.css" />
-
-  <style>
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-    }
-
-    html, body {
-      height: 100%;
-      background: #0d0d0d;
-      color: #fff;
-      overflow: hidden;
-    }
-
-    #root {
-      width: 100vw;
-      height: 100vh;
-    }
-
-    #loading-screen {
-      position: fixed;
-      inset: 0;
-      background: #0d0d0d;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      align-items: center;
-      gap: 18px;
-      z-index: 9999;
-      transition: opacity 0.8s ease;
-    }
-
-    #loading-screen.fade-out {
-      opacity: 0;
-      pointer-events: none;
-    }
-
-    .ls-title {
-      font-family: sans-serif;
-      font-size: 18px;
-      font-weight: 700;
-      letter-spacing: 0.1em;
-      color: #39ff14;
-      text-transform: uppercase;
-      text-shadow: 0 0 6px #39ff14, 0 0 16px #00cfff;
-    }
-
-    .ls-sub {
-      font-family: sans-serif;
-      font-size: 12px;
-      color: rgba(255,255,255,0.45);
-      text-align: center;
-      max-width: 320px;
-      line-height: 1.5;
-    }
-
-    .ls-bar-wrap {
-      width: 260px;
-      height: 3px;
-      background: rgba(255,255,255,0.08);
-      overflow: hidden;
-    }
-
-    .ls-bar {
-      height: 100%;
-      width: 0%;
-      background: linear-gradient(90deg, #39ff14, #00cfff);
-      transition: width 0.2s ease;
-    }
-
-    @media (prefers-reduced-motion: reduce) {
-      #loading-screen {
-        transition: none;
-      }
-    }
-  </style>
-</head>
-
-<body>
-
-  <div id="loading-screen">
-    <div class="ls-title">MUSIFEAST-17</div>
-    <div class="ls-sub">
-      Initialising runtime environment
-    </div>
-
-    <div class="ls-bar-wrap">
-      <div class="ls-bar"></div>
-    </div>
-
-    <div class="ls-sub">
-      webR and Shinylive are loading
-    </div>
-  </div>
-
-  <div id="root"></div>
-
-  <script>
-    const loadingScreen = document.getElementById("loading-screen");
-    const bar = document.querySelector(".ls-bar");
-
-    let progress = 0;
-    let revealed = false;
-
-    function setProgress(p) {
-      progress = Math.max(progress, p);
-      if (bar) bar.style.width = progress + "%";
-    }
-
-    const originalFetch = window.fetch;
-    window.fetch = async (...args) => {
-      const res = await originalFetch(...args);
-
-      const length = res.headers.get("content-length");
-      if (!length || !res.body) return res;
-
-      const total = parseInt(length, 10);
-      let loaded = 0;
-
-      const reader = res.clone().body.getReader();
-
-      const stream = new ReadableStream({
-        start(controller) {
-          function read() {
-            reader.read().then(({ done, value }) => {
-              if (done) {
-                setProgress(progress + 5);
-                controller.close();
-                return;
-              }
-
-              loaded += value.byteLength;
-              const pct = Math.floor((loaded / total) * 100);
-
-              setProgress(Math.min(90, pct * 0.6));
-
-              controller.enqueue(value);
-              read();
-            });
-          }
-          read();
-        }
+    <!-- Shinylive — exact launch method from shinylive::export() -->
+    <script src="./shinylive/load-shinylive-sw.js" type="module"></script>
+    <script type="module">
+      import { runExportedApp } from "./shinylive/shinylive.js";
+      runExportedApp({
+        id: "root",
+        appEngine: "r",
+        relPath: "",
       });
+    </script>
+    <link rel="stylesheet" href="./shinylive/style-resets.css" />
+    <link rel="stylesheet" href="./shinylive/shinylive.css" />
 
-      return new Response(stream, res);
-    };
+    <style>
+      * { box-sizing: border-box; margin: 0; padding: 0; }
 
-    const originalCompile = WebAssembly.compileStreaming;
-    WebAssembly.compileStreaming = async (source) => {
-      setProgress(95);
-      const result = await originalCompile(source);
-      setProgress(99);
-      return result;
-    };
+      html, body {
+        height: 100%;
+        background: #0d0d0d;
+        color: #fff;
+      }
 
-    function reveal() {
-      if (revealed) return;
-      revealed = true;
+      #root {
+        height: 100vh;
+        width: 100vw;
+      }
 
-      document.body.style.overflow = "auto";
+      /* Loading screen sits above everything — including Shinylive's hex screen */
+      #loading-screen {
+        position: fixed;
+        inset: 0;
+        background: #0d0d0d;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 1.4rem;
+        z-index: 999999;
+        transition: opacity 0.8s ease;
+      }
+      #loading-screen.fade-out {
+        opacity: 0;
+        pointer-events: none;
+      }
 
-      loadingScreen.classList.add("fade-out");
+      .ls-title {
+        font-family: sans-serif;
+        font-size: 1.1rem;
+        font-weight: 700;
+        color: #39ff14;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        animation: pulse 2.2s infinite ease-in-out;
+      }
+      .ls-sub {
+        font-family: sans-serif;
+        font-size: 0.82rem;
+        color: rgba(255,255,255,0.45);
+        max-width: 300px;
+        text-align: center;
+        line-height: 1.6;
+      }
+      .ls-bar-wrap {
+        width: 260px;
+        height: 3px;
+        background: rgba(255,255,255,0.08);
+        border-radius: 2px;
+        overflow: hidden;
+      }
+      .ls-bar {
+        height: 100%;
+        width: 0%;
+        background: linear-gradient(90deg, #39ff14, #00cfff);
+        border-radius: 2px;
+        animation: bar-grow 30s ease-out forwards;
+      }
 
+      @keyframes bar-grow {
+        0%  { width:  0%; }
+        8%  { width: 12%; }
+        20% { width: 30%; }
+        40% { width: 52%; }
+        60% { width: 70%; }
+        80% { width: 85%; }
+        95% { width: 93%; }
+        100%{ width: 97%; }
+      }
+      @keyframes pulse {
+        0%,100% {
+          opacity: 0.5;
+          text-shadow: 0 0 4px #39ff14, 0 0 10px #39ff14;
+        }
+        50% {
+          opacity: 1;
+          text-shadow: 0 0 12px #39ff14, 0 0 30px #39ff14, 0 0 50px #00cfff;
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        #loading-screen { transition: none; }
+        .ls-bar { animation: none; width: 80%; }
+        .ls-title { animation: none; }
+      }
+    </style>
+  </head>
+
+  <body>
+
+    <!-- Loading screen — covers Shinylive's hex loading UI -->
+    <div id="loading-screen">
+      <div class="ls-title">MUSIFEAST-17</div>
+      <div class="ls-sub">
+        Starting the R environment in your browser.<br>
+        This takes 30–90 seconds on first visit.
+      </div>
+      <div class="ls-bar-wrap"><div class="ls-bar"></div></div>
+      <div class="ls-sub" style="font-size:0.73rem; opacity:0.4; margin-top:-0.5rem;">
+        shinylive + webR · no server required
+      </div>
+    </div>
+
+    <!-- App root — exactly as generated by shinylive::export() -->
+    <div style="height: 100vh; width: 100vw" id="root"></div>
+
+    <script>
+      const loadingEl = document.getElementById('loading-screen');
+      let revealed = false;
+
+      function reveal() {
+        if (revealed) return;
+        revealed = true;
+        document.body.style.overflow = 'auto';
+        setTimeout(() => {
+          loadingEl.classList.add('fade-out');
+          setTimeout(() => loadingEl.remove(), 900);
+        }, 600);
+      }
+
+      // Poll #root for Shiny having rendered real content
+      function pollForApp() {
+        const root = document.getElementById('root');
+        if (!root) { setTimeout(pollForApp, 500); return; }
+
+        const checkReady = setInterval(() => {
+          const hasShiny = root.querySelector(
+            '.shiny-bound-output, [data-shiny-output], .plotly, .shiny-bound-input, iframe'
+          );
+          if (hasShiny) {
+            clearInterval(checkReady);
+            setTimeout(reveal, 2000);
+          }
+        }, 800);
+      }
+
+      setTimeout(pollForApp, 1500);
+
+      // Hard reveal at 30s — bar snaps to 100% then screen fades
       setTimeout(() => {
-        loadingScreen.remove();
-      }, 800);
-    }
+        const bar = document.querySelector('.ls-bar');
+        if (bar) {
+          bar.style.animation = 'none';
+          bar.style.width = '100%';
+          bar.style.transition = 'width 0.4s ease';
+        }
+        setTimeout(reveal, 500);
+      }, 30000);
+    </script>
 
-    function checkReady() {
-      const root = document.getElementById("root");
-
-      const hasContent =
-        root &&
-        (root.children.length > 0 ||
-         root.querySelector("iframe, canvas, .shiny"));
-
-      if (hasContent) {
-        setTimeout(reveal, 1000);
-        return;
-      }
-
-      setTimeout(checkReady, 500);
-    }
-
-    function initAudio() {
-      try {
-        const ctx = new (window.AudioContext || window.webkitAudioContext)();
-        const osc = ctx.createOscillator();
-        const gain = ctx.createGain();
-
-        osc.frequency.value = 60;
-        gain.gain.value = 0.01;
-
-        osc.connect(gain);
-        gain.connect(ctx.destination);
-        osc.start();
-      } catch (e) {
-      }
-    }
-
-    initAudio();
-
-    setTimeout(checkReady, 2000);
-    setTimeout(reveal, 150000);
-  </script>
-
-</body>
+  </body>
 </html>
