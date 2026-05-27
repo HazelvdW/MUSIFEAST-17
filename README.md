@@ -24,7 +24,7 @@ Normative data were collected from **701 UK and US participants** sampled evenly
 
 ---
 
-## Interactive App 🎵
+## Interactive App!
 
 An interactive Shiny app lets you explore the stimulus set visually — plot any two normative dimensions against each other, filter by genre, and click any point to play the associated audio clip directly in your browser.
 
